@@ -1,6 +1,6 @@
 const std = @import("std");
-const zigimg = @import("zigimg");
 const args = @import("args.zig");
+const packer = @import("packer.zig");
 
 pub fn main(init: std.process.Init) !void {
     const arena: std.mem.Allocator = init.arena.allocator();
@@ -22,21 +22,28 @@ pub fn main(init: std.process.Init) !void {
             args.printHelp(stdout_writer);
         },
         .pack => {
-            const opts = app_config.pack_args.?;
+            const options = app_config.pack_args.?;
 
-            stdout_writer.print("Time to pack! Outputting to: {s}\n", .{opts.output_path.?}) catch {};
+            stdout_writer.print("Packing textures...\n", .{}) catch {};
 
-            if (opts.red_path) |red| {
-                stdout_writer.print("Red channel image: {s}\n", .{red}) catch {};
-            }
+            packer.pack(arena, options) catch |e| {
+                std.log.err("Packing failed: {}", .{e});
+                return e;
+            };
 
-            // TODO: zigimg load logic here.
+            stdout_writer.print("Packing complete!", .{}) catch {};
         },
         .unpack => {
-            const opts = app_config.unpack_args.?;
-            stdout_writer.print("Time to unpack! Input: {s}\n", .{opts.input_path.?}) catch {};
+            const options = app_config.unpack_args.?;
 
-            // TODO: unpack logic here
+            stdout_writer.print("Unpacking textures...\n", .{}) catch {};
+
+            packer.unpack(arena, options) catch |e| {
+                std.log.err("Unpacking failed: {}", .{e});
+                return e;
+            };
+
+            stdout_writer.print("Unpacking complete!", .{}) catch {};
         },
     }
 }
