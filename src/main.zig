@@ -38,7 +38,7 @@ pub fn main(init: std.process.Init) !void {
 
             stdout_writer.print("Unpacking textures...\n", .{}) catch {};
 
-            packer.unpack(arena, options) catch |e| {
+            packer.unpack(arena, init.io, stdout_writer, options) catch |e| {
                 std.log.err("Unpacking failed: {}", .{e});
                 return e;
             };
