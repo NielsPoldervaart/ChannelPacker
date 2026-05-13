@@ -34,7 +34,6 @@ pub const ParseError = error{
     UnknownFlag,
 };
 
-// TODO: Add possible option for `-r:a` where r is the channel to pack in, and :a is the channel from which to get the data from the <file>.
 pub fn parse(args: []const []const u8, writer: *std.Io.Writer) ParseError!AppConfig {
     if (args.len < 2) {
         return AppConfig{

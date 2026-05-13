@@ -113,9 +113,9 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
     }
 
     var write_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
-    try output_image.writeToFilePath(allocator, io_instance, base_output_path, write_buffer[0..], .{ .tga = .{} });
+    try output_image.writeToFilePath(allocator, io_instance, final_out_path, write_buffer[0..], .{ .tga = .{} });
 
-    writer.print("Successfully packed image into {s}!\n", .{base_output_path}) catch {};
+    writer.print("Successfully packed image into {s}!\n", .{final_out_path}) catch {};
 }
 
 pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.UnpackConfig) !void {
