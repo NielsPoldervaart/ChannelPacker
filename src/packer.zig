@@ -139,18 +139,22 @@ pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io
     var red_image = try zigimg.Image.create(allocator, image_data.width, image_data.height, .grayscale8);
     defer red_image.deinit(allocator);
     const red_file_path = try std.fs.path.join(allocator, &.{ output_dir, "red_image.tga" });
+    defer allocator.free(red_file_path);
 
     var green_image = try zigimg.Image.create(allocator, image_data.width, image_data.height, .grayscale8);
     defer green_image.deinit(allocator);
     const green_file_path = try std.fs.path.join(allocator, &.{ output_dir, "green_image.tga" });
+    defer allocator.free(green_file_path);
 
     var blue_image = try zigimg.Image.create(allocator, image_data.width, image_data.height, .grayscale8);
     defer blue_image.deinit(allocator);
     const blue_file_path = try std.fs.path.join(allocator, &.{ output_dir, "blue_image.tga" });
+    defer allocator.free(blue_file_path);
 
     var alpha_image = try zigimg.Image.create(allocator, image_data.width, image_data.height, .grayscale8);
     defer alpha_image.deinit(allocator);
     const alpha_file_path = try std.fs.path.join(allocator, &.{ output_dir, "alpha_image.tga" });
+    defer allocator.free(alpha_file_path);
 
     var color_it = image_data.iterator();
     var i: usize = 0;
