@@ -13,7 +13,16 @@ fn loadChannelImage(allocator: std.mem.Allocator, io_instance: std.Io, path: ?[]
 }
 
 pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.PackConfig) !void {
-    const output_path = options.output_path.?;
+    const base_output_path = options.output_path.?;
+
+    const needs_ext = !std.mem.endsWith(u8, base_output_path, ".tga");
+
+    const final_out_path = if (needs_ext)
+        try std.fmt.allocPrint(allocator, "{s}.tga", .{base_output_path})
+    else
+        base_output_path;
+
+    defer if (needs_ext) allocator.free(final_out_path);
 
     var r_img = try loadChannelImage(allocator, io_instance, options.red_path);
     var g_img = try loadChannelImage(allocator, io_instance, options.green_path);
@@ -43,7 +52,7 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
         }
     }
 
-    writer.print("Successfully loaded all images, packing data into new image with size: {}x{}", .{ width, height }) catch {};
+    writer.print("Successfully loaded all images, packing data into new image with size: {}x{}\n", .{ width, height }) catch {};
 
     var output_image = try zigimg.Image.create(allocator, width, height, .rgba32);
     defer output_image.deinit(allocator);
@@ -96,7 +105,7 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
         output_image.pixels.rgba32[i].a = @intFromFloat(final_a * 255.0);
     }
 
-    if (std.fs.path.dirname(output_path)) |dir_path| {
+    if (std.fs.path.dirname(base_output_path)) |dir_path| {
         std.Io.Dir.cwd().createDirPath(io_instance, dir_path) catch |err| {
             std.log.err("Failed to create output directory '{s}': {}", .{ dir_path, err });
             return err;
@@ -104,9 +113,9 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
     }
 
     var write_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
-    try output_image.writeToFilePath(allocator, io_instance, output_path, write_buffer[0..], .{ .tga = .{} });
+    try output_image.writeToFilePath(allocator, io_instance, base_output_path, write_buffer[0..], .{ .tga = .{} });
 
-    writer.print("Successfully packed image into {s}!\n", .{output_path}) catch {};
+    writer.print("Successfully packed image into {s}!\n", .{base_output_path}) catch {};
 }
 
 pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.UnpackConfig) !void {
