@@ -38,7 +38,7 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
                 height = img.height;
             } else if (width != img.width or height != img.height) {
                 std.log.err("Ensure that all images have the exact same Size!", .{});
-                return zigimg.Image.ConvertError; // TODO: what error to use here?
+                return error.DimensionMismatch;
             }
         }
     }
@@ -60,7 +60,7 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
         var final_r: f32 = 0.0;
         var final_g: f32 = 0.0;
         var final_b: f32 = 0.0;
-        var final_a: f32 = 0.0;
+        var final_a: f32 = 1.0;
 
         if (r_it) |*it| {
             if (it.next()) |color| {
@@ -69,39 +69,31 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
         }
         if (g_it) |*it| {
             if (it.next()) |color| {
-                final_g = color.g;
+                final_g = color.r;
             }
         }
         if (b_it) |*it| {
             if (it.next()) |color| {
-                final_b = color.b;
+                final_b = color.r;
             }
         }
         if (a_it) |*it| {
             if (it.next()) |color| {
-                final_a = color.a;
+                final_a = color.r;
             }
         }
         if (rgb_it) |*it| {
             if (it.next()) |color| {
-                switch (color) {
-                    .r => {
-                        final_r = color.r;
-                    },
-                    .g => {
-                        final_g = color.g;
-                    },
-                    .b => {
-                        final_b = color.b;
-                    },
-                }
+                final_r = color.r;
+                final_g = color.g;
+                final_b = color.b;
             }
         }
 
-        output_image.pixels.rgba32[i].r = final_r;
-        output_image.pixels.rgba32[i].g = final_g;
-        output_image.pixels.rgba32[i].b = final_b;
-        output_image.pixels.rgba32[i].a = final_a;
+        output_image.pixels.rgba32[i].r = @intFromFloat(final_r * 255.0);
+        output_image.pixels.rgba32[i].g = @intFromFloat(final_g * 255.0);
+        output_image.pixels.rgba32[i].b = @intFromFloat(final_b * 255.0);
+        output_image.pixels.rgba32[i].a = @intFromFloat(final_a * 255.0);
     }
 
     if (std.fs.path.dirname(output_path)) |dir_path| {
