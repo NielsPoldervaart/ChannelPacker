@@ -2,12 +2,119 @@ const std = @import("std");
 const zigimg = @import("zigimg");
 const args = @import("args.zig");
 
-pub fn pack(allocator: std.mem.Allocator, options: args.PackConfig) !void {
-    if (options.red_path) |red| {}
-    if (options.green_path) |green| {}
-    if (options.blue_path) |blue| {}
-    if (options.alpha_path) |alpha| {}
-    if (options.rgb_path) |rgb| {}
+fn loadChannelImage(allocator: std.mem.Allocator, io_instance: std.Io, path: ?[]const u8) !?zigimg.Image {
+    const file_path = path orelse return null;
+
+    var read_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
+    return zigimg.Image.fromFilePath(allocator, io_instance, file_path, read_buffer[0..]) catch |err| {
+        std.log.err("Failed to load image '{s}': {}", .{ file_path, err });
+        return err;
+    };
+}
+
+pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.PackConfig) !void {
+    const output_path = options.output_path.?;
+
+    var r_img = try loadChannelImage(allocator, io_instance, options.red_path);
+    var g_img = try loadChannelImage(allocator, io_instance, options.green_path);
+    var b_img = try loadChannelImage(allocator, io_instance, options.blue_path);
+    var a_img = try loadChannelImage(allocator, io_instance, options.alpha_path);
+    var rgb_img = try loadChannelImage(allocator, io_instance, options.rgb_path);
+
+    defer if (r_img) |*img| img.deinit(allocator);
+    defer if (g_img) |*img| img.deinit(allocator);
+    defer if (b_img) |*img| img.deinit(allocator);
+    defer if (a_img) |*img| img.deinit(allocator);
+    defer if (rgb_img) |*img| img.deinit(allocator);
+
+    var width: usize = 0;
+    var height: usize = 0;
+
+    const loaded_images = [_]?zigimg.Image{ r_img, g_img, b_img, a_img, rgb_img };
+    for (loaded_images) |img_opt| {
+        if (img_opt) |img| {
+            if (width == 0) {
+                width = img.width;
+                height = img.height;
+            } else if (width != img.width or height != img.height) {
+                std.log.err("Ensure that all images have the exact same Size!", .{});
+                return zigimg.Image.ConvertError; // TODO: what error to use here?
+            }
+        }
+    }
+
+    writer.print("Successfully loaded all images, packing data into new image with size: {}x{}", .{ width, height }) catch {};
+
+    var output_image = try zigimg.Image.create(allocator, width, height, .rgba32);
+    defer output_image.deinit(allocator);
+
+    var r_it = if (r_img) |*r_it| r_it.iterator() else null;
+    var g_it = if (g_img) |*g_it| g_it.iterator() else null;
+    var b_it = if (b_img) |*b_it| b_it.iterator() else null;
+    var a_it = if (a_img) |*a_it| a_it.iterator() else null;
+    var rgb_it = if (rgb_img) |*rgb_it| rgb_it.iterator() else null;
+
+    var i: usize = 0;
+    const total_pixels = width * height;
+    while (i < total_pixels) : (i += 1) {
+        var final_r: f32 = 0.0;
+        var final_g: f32 = 0.0;
+        var final_b: f32 = 0.0;
+        var final_a: f32 = 0.0;
+
+        if (r_it) |*it| {
+            if (it.next()) |color| {
+                final_r = color.r;
+            }
+        }
+        if (g_it) |*it| {
+            if (it.next()) |color| {
+                final_g = color.g;
+            }
+        }
+        if (b_it) |*it| {
+            if (it.next()) |color| {
+                final_b = color.b;
+            }
+        }
+        if (a_it) |*it| {
+            if (it.next()) |color| {
+                final_a = color.a;
+            }
+        }
+        if (rgb_it) |*it| {
+            if (it.next()) |color| {
+                switch (color) {
+                    .r => {
+                        final_r = color.r;
+                    },
+                    .g => {
+                        final_g = color.g;
+                    },
+                    .b => {
+                        final_b = color.b;
+                    },
+                }
+            }
+        }
+
+        output_image.pixels.rgba32[i].r = final_r;
+        output_image.pixels.rgba32[i].g = final_g;
+        output_image.pixels.rgba32[i].b = final_b;
+        output_image.pixels.rgba32[i].a = final_a;
+    }
+
+    if (std.fs.path.dirname(output_path)) |dir_path| {
+        std.Io.Dir.cwd().createDirPath(io_instance, dir_path) catch |err| {
+            std.log.err("Failed to create output directory '{s}': {}", .{ dir_path, err });
+            return err;
+        };
+    }
+
+    var write_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
+    try output_image.writeToFilePath(allocator, io_instance, output_path, write_buffer[0..], .{ .tga = .{} });
+
+    writer.print("Successfully packed image into {s}!\n", .{output_path}) catch {};
 }
 
 pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.UnpackConfig) !void {

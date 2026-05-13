@@ -26,7 +26,7 @@ pub fn main(init: std.process.Init) !void {
 
             stdout_writer.print("Packing textures...\n", .{}) catch {};
 
-            packer.pack(arena, options) catch |e| {
+            packer.pack(arena, init.io, stdout_writer, options) catch |e| {
                 std.log.err("Packing failed: {}", .{e});
                 return e;
             };
