@@ -14,6 +14,11 @@ pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io
     const input_path = options.input_path.?;
     const output_dir = options.output_dir.?;
 
+    std.Io.Dir.createDirPath(std.Io.Dir.cwd(), io_instance, output_dir) catch |err| {
+        std.log.err("Failed to create directory '{s}': {}", .{ output_dir, err });
+        return err;
+    };
+
     var read_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
     var image_data = zigimg.Image.fromFilePath(allocator, io_instance, input_path, read_buffer[0..]) catch |err| {
         std.log.err("Failed to load input image '{s}': {}", .{ input_path, err });
