@@ -57,52 +57,53 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
     var output_image = try zigimg.Image.create(allocator, width, height, .rgba32);
     defer output_image.deinit(allocator);
 
-    var r_it = if (r_img) |*r_it| r_it.iterator() else null;
-    var g_it = if (g_img) |*g_it| g_it.iterator() else null;
-    var b_it = if (b_img) |*b_it| b_it.iterator() else null;
-    var a_it = if (a_img) |*a_it| a_it.iterator() else null;
-    var rgb_it = if (rgb_img) |*rgb_it| rgb_it.iterator() else null;
+    const r_slice = if (r_img) |img| switch (img.pixels) {
+        .grayscale8 => |px| px,
+        else => null,
+    } else null;
 
-    var i: usize = 0;
-    const total_pixels = width * height;
-    while (i < total_pixels) : (i += 1) {
-        var final_r: f32 = 0.0;
-        var final_g: f32 = 0.0;
-        var final_b: f32 = 0.0;
-        var final_a: f32 = 1.0;
+    const g_slice = if (g_img) |img| switch (img.pixels) {
+        .grayscale8 => |px| px,
+        else => null,
+    } else null;
 
-        if (r_it) |*it| {
-            if (it.next()) |color| {
-                final_r = color.r;
-            }
-        }
-        if (g_it) |*it| {
-            if (it.next()) |color| {
-                final_g = color.r;
-            }
-        }
-        if (b_it) |*it| {
-            if (it.next()) |color| {
-                final_b = color.r;
-            }
-        }
-        if (a_it) |*it| {
-            if (it.next()) |color| {
-                final_a = color.r;
-            }
-        }
-        if (rgb_it) |*it| {
-            if (it.next()) |color| {
-                final_r = color.r;
-                final_g = color.g;
-                final_b = color.b;
-            }
+    const b_slice = if (b_img) |img| switch (img.pixels) {
+        .grayscale8 => |px| px,
+        else => null,
+    } else null;
+
+    const a_slice = if (a_img) |img| switch (img.pixels) {
+        .grayscale8 => |px| px,
+        else => null,
+    } else null;
+
+    const rgb_slice = if (rgb_img) |img| switch (img.pixels) {
+        .rgb24 => |px| px,
+        else => null,
+    } else null;
+
+    const out_pixels = output_image.pixels.rgba32;
+    for (out_pixels, 0..) |*out_px, i| {
+        var final_r: u8 = 0;
+        var final_g: u8 = 0;
+        var final_b: u8 = 0;
+        var final_a: u8 = 255;
+
+        if (rgb_slice) |px| {
+            final_r = px[i].r;
+            final_g = px[i].g;
+            final_b = px[i].b;
         }
 
-        output_image.pixels.rgba32[i].r = @intFromFloat(final_r * 255.0);
-        output_image.pixels.rgba32[i].g = @intFromFloat(final_g * 255.0);
-        output_image.pixels.rgba32[i].b = @intFromFloat(final_b * 255.0);
-        output_image.pixels.rgba32[i].a = @intFromFloat(final_a * 255.0);
+        if (r_slice) |px| final_r = px[i].value;
+        if (g_slice) |px| final_g = px[i].value;
+        if (b_slice) |px| final_b = px[i].value;
+        if (a_slice) |px| final_a = px[i].value;
+
+        out_px.r = final_r;
+        out_px.g = final_g;
+        out_px.b = final_b;
+        out_px.a = final_a;
     }
 
     if (std.fs.path.dirname(base_output_path)) |dir_path| {
@@ -156,26 +157,27 @@ pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io
     const alpha_file_path = try std.fs.path.join(allocator, &.{ output_dir, "alpha_image.tga" });
     defer allocator.free(alpha_file_path);
 
-    var color_it = image_data.iterator();
-    var i: usize = 0;
-    while (color_it.next()) |color| {
-        const red_float = color.r * 255.0;
-        const red_byte: u8 = @intFromFloat(red_float);
-        red_image.pixels.grayscale8[i].value = red_byte;
-
-        const green_float = color.g * 255.0;
-        const green_byte: u8 = @intFromFloat(green_float);
-        green_image.pixels.grayscale8[i].value = green_byte;
-
-        const blue_float = color.b * 255.0;
-        const blue_byte: u8 = @intFromFloat(blue_float);
-        blue_image.pixels.grayscale8[i].value = blue_byte;
-
-        const alpha_float = color.a * 255.0;
-        const alpha_byte: u8 = @intFromFloat(alpha_float);
-        alpha_image.pixels.grayscale8[i].value = alpha_byte;
-
-        i += 1;
+    switch (image_data.pixels) {
+        .rgba32 => |pixels| {
+            for (pixels, 0..) |px, i| {
+                red_image.pixels.grayscale8[i].value = px.r;
+                green_image.pixels.grayscale8[i].value = px.g;
+                blue_image.pixels.grayscale8[i].value = px.b;
+                alpha_image.pixels.grayscale8[i].value = px.a;
+            }
+        },
+        .rgb24 => |pixels| {
+            for (pixels, 0..) |px, i| {
+                red_image.pixels.grayscale8[i].value = px.r;
+                green_image.pixels.grayscale8[i].value = px.g;
+                blue_image.pixels.grayscale8[i].value = px.b;
+                alpha_image.pixels.grayscale8[i].value = 255;
+            }
+        },
+        else => {
+            std.log.err("Unsupported pixel format!", .{});
+            return error.UnsupportedFormat;
+        },
     }
 
     var write_buffer: [zigimg.io.DEFAULT_BUFFER_SIZE]u8 = undefined;
