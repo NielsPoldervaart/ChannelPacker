@@ -4,6 +4,8 @@ pub const Command = enum {
     pack,
     unpack,
     help,
+    pack_help,
+    unpack_help,
 };
 
 pub const PackConfig = struct {
@@ -53,8 +55,9 @@ pub fn parse(args: []const []const u8, writer: *std.Io.Writer) ParseError!AppCon
         var i: usize = 2;
         while (i < args.len) : (i += 1) {
             const arg = args[i];
-
-            if (std.mem.eql(u8, arg, "--red") or std.mem.eql(u8, arg, "-r")) {
+            if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
+                return AppConfig{ .command = .pack_help };
+            } else if (std.mem.eql(u8, arg, "--red") or std.mem.eql(u8, arg, "-r")) {
                 i += 1;
                 if (i >= args.len) return ParseError.MissingArgumentValue;
                 config.red_path = args[i];
@@ -99,7 +102,9 @@ pub fn parse(args: []const []const u8, writer: *std.Io.Writer) ParseError!AppCon
         while (i < args.len) : (i += 1) {
             const arg = args[i];
 
-            if (std.mem.eql(u8, arg, "--input") or std.mem.eql(u8, arg, "-i")) {
+            if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
+                return AppConfig{ .command = .unpack_help };
+            } else if (std.mem.eql(u8, arg, "--input") or std.mem.eql(u8, arg, "-i")) {
                 i += 1;
                 if (i >= args.len) return ParseError.MissingArgumentValue;
                 config.input_path = args[i];
@@ -150,4 +155,42 @@ pub fn printHelp(writer: *std.Io.Writer) void {
     ;
 
     writer.print("{s}\n", .{help_text}) catch {};
+}
+
+pub fn printPackHelp(writer: *std.Io.Writer) void {
+    const pack_help_text =
+        \\ChannelPacker - A tool to pack / unpack textures
+        \\
+        \\Usage: ChannelPacker pack [options]
+        \\
+        \\Commands:
+        \\  pack
+        \\
+        \\Pack Options:
+        \\  -r, --red <file>        Input for the Red channel
+        \\  -g, --green <file>      Input for the Green channel
+        \\  -b, --blue <file>       Input for the Blue channel
+        \\  -a, --alpha <file>      Input for the Alpha channel
+        \\  --rgb <file>            Input for the RGB channels combined
+        \\  -o, --output <file>     Output file path (.tga) [Required]
+    ;
+
+    writer.print("{s}\n", .{pack_help_text}) catch {};
+}
+
+pub fn printUnpackHelp(writer: *std.Io.Writer) void {
+    const unpack_help_text =
+        \\ChannelPacker - A tool to pack / unpack textures
+        \\
+        \\Usage: ChannelPacker unpack [options]
+        \\
+        \\Commands:
+        \\  unpack
+        \\
+        \\Unpack Options:
+        \\  -i, --input <file>      Input texture to unpack [Required]
+        \\  -o, --output <dir>      Directory to save extracted data to [Required]
+    ;
+
+    writer.print("{s}\n", .{unpack_help_text}) catch {};
 }

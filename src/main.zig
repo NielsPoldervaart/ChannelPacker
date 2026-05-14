@@ -21,6 +21,12 @@ pub fn main(init: std.process.Init) !void {
         .help => {
             args.printHelp(stdout_writer);
         },
+        .pack_help => {
+            args.printPackHelp(stdout_writer);
+        },
+        .unpack_help => {
+            args.printUnpackHelp(stdout_writer);
+        },
         .pack => {
             const options = app_config.pack_args.?;
 
