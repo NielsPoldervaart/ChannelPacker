@@ -4,6 +4,19 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const zigimg_dependency = b.dependency("zigimg", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const zigimg_mod = zigimg_dependency.module("zigimg");
+
+    const lib_mod = b.addModule("ChannelPacker", .{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    lib_mod.addImport("zigimg", zigimg_mod);
+
     const exe = b.addExecutable(.{
         .name = "ChannelPacker",
         .root_module = b.createModule(.{
@@ -13,19 +26,29 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    const zigimg_dependency = b.dependency("zigimg", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    exe.root_module.addImport("zigimg", zigimg_dependency.module("zigimg"));
+    exe.root_module.addImport("ChannelPacker", lib_mod);
+    exe.root_module.addImport("zigimg", zigimg_mod);
 
     b.installArtifact(exe);
 
+    const static_lib = b.addLibrary(.{
+        .name = "ChannelPacker",
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/root.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    static_lib.root_module.addImport("zigimg", zigimg_mod);
+
+    b.installArtifact(static_lib);
+
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
-    run_step.dependOn(&run_cmd.step);
     run_cmd.step.dependOn(b.getInstallStep());
+    run_step.dependOn(&run_cmd.step);
 
     if (b.args) |args| {
         run_cmd.addArgs(args);
