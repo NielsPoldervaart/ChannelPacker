@@ -42,9 +42,11 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .link_libc = true,
+            .imports = &.{
+                .{ .name = "zigimg", .module = zigimg_mod },
+            },
         }),
     });
-    static_lib.root_module.addImport("zigimg", zigimg_mod);
 
     b.installArtifact(static_lib);
 

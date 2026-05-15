@@ -1,6 +1,6 @@
 const std = @import("std");
-const args = @import("args.zig");
-const packer = @import("packer.zig");
+
+const ChannelPacker = @import("ChannelPacker");
 
 pub fn main(init: std.process.Init) !void {
     const arena: std.mem.Allocator = init.arena.allocator();
@@ -13,26 +13,26 @@ pub fn main(init: std.process.Init) !void {
 
     const cmd_args = try init.minimal.args.toSlice(arena);
 
-    const app_config = args.parse(cmd_args, stdout_writer) catch {
+    const app_config = ChannelPacker.args.parse(cmd_args, stdout_writer) catch {
         return;
     };
 
     switch (app_config.command) {
         .help => {
-            args.printHelp(stdout_writer);
+            ChannelPacker.args.printHelp(stdout_writer);
         },
         .pack_help => {
-            args.printPackHelp(stdout_writer);
+            ChannelPacker.args.printPackHelp(stdout_writer);
         },
         .unpack_help => {
-            args.printUnpackHelp(stdout_writer);
+            ChannelPacker.args.printUnpackHelp(stdout_writer);
         },
         .pack => {
             const options = app_config.pack_args.?;
 
             stdout_writer.print("Packing textures...\n", .{}) catch {};
 
-            packer.pack(arena, init.io, stdout_writer, options) catch |e| {
+            ChannelPacker.packer.pack(arena, init.io, stdout_writer, options) catch |e| {
                 std.log.err("Packing failed: {}", .{e});
                 return e;
             };
@@ -44,7 +44,7 @@ pub fn main(init: std.process.Init) !void {
 
             stdout_writer.print("Unpacking textures...\n", .{}) catch {};
 
-            packer.unpack(arena, init.io, stdout_writer, options) catch |e| {
+            ChannelPacker.packer.unpack(arena, init.io, stdout_writer, options) catch |e| {
                 std.log.err("Unpacking failed: {}", .{e});
                 return e;
             };
