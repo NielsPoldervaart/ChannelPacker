@@ -1,4 +1,5 @@
 const std = @import("std");
+const args = @import("args.zig");
 
 const ChannelPacker = @import("ChannelPacker");
 
@@ -13,19 +14,19 @@ pub fn main(init: std.process.Init) !void {
 
     const cmd_args = try init.minimal.args.toSlice(arena);
 
-    const app_config = ChannelPacker.args.parse(cmd_args, stdout_writer) catch {
+    const app_config = args.parse(cmd_args, stdout_writer) catch {
         return;
     };
 
     switch (app_config.command) {
         .help => {
-            ChannelPacker.args.printHelp(stdout_writer);
+            args.printHelp(stdout_writer);
         },
         .pack_help => {
-            ChannelPacker.args.printPackHelp(stdout_writer);
+            args.printPackHelp(stdout_writer);
         },
         .unpack_help => {
-            ChannelPacker.args.printUnpackHelp(stdout_writer);
+            args.printUnpackHelp(stdout_writer);
         },
         .pack => {
             const options = app_config.pack_args.?;

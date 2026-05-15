@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const ChannelPacker = @import("ChannelPacker");
+
 pub const Command = enum {
     pack,
     unpack,
@@ -8,24 +10,10 @@ pub const Command = enum {
     unpack_help,
 };
 
-pub const PackConfig = struct {
-    red_path: ?[]const u8 = null,
-    green_path: ?[]const u8 = null,
-    blue_path: ?[]const u8 = null,
-    alpha_path: ?[]const u8 = null,
-    rgb_path: ?[]const u8 = null,
-    output_path: ?[]const u8 = null,
-};
-
-pub const UnpackConfig = struct {
-    input_path: ?[]const u8 = null,
-    output_dir: ?[]const u8 = null,
-};
-
 pub const AppConfig = struct {
     command: Command,
-    pack_args: ?PackConfig = null,
-    unpack_args: ?UnpackConfig = null,
+    pack_args: ?ChannelPacker.packer.PackOptions = null,
+    unpack_args: ?ChannelPacker.packer.UnpackOptions = null,
 };
 
 pub const ParseError = error{
@@ -50,7 +38,7 @@ pub fn parse(args: []const []const u8, writer: *std.Io.Writer) ParseError!AppCon
     }
 
     if (std.mem.eql(u8, cmd_str, "pack")) {
-        var config = PackConfig{};
+        var config = ChannelPacker.packer.PackOptions{};
 
         var i: usize = 2;
         while (i < args.len) : (i += 1) {
@@ -96,7 +84,7 @@ pub fn parse(args: []const []const u8, writer: *std.Io.Writer) ParseError!AppCon
     }
 
     if (std.mem.eql(u8, cmd_str, "unpack")) {
-        var config = UnpackConfig{};
+        var config = ChannelPacker.packer.UnpackOptions{};
 
         var i: usize = 2;
         while (i < args.len) : (i += 1) {

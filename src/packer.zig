@@ -1,6 +1,19 @@
 const std = @import("std");
 const zigimg = @import("zigimg");
-const args = @import("args.zig");
+
+pub const PackOptions = struct {
+    red_path: ?[]const u8 = null,
+    green_path: ?[]const u8 = null,
+    blue_path: ?[]const u8 = null,
+    alpha_path: ?[]const u8 = null,
+    rgb_path: ?[]const u8 = null,
+    output_path: ?[]const u8 = null,
+};
+
+pub const UnpackOptions = struct {
+    input_path: ?[]const u8 = null,
+    output_dir: ?[]const u8 = null,
+};
 
 fn loadChannelImage(allocator: std.mem.Allocator, io_instance: std.Io, path: ?[]const u8) !?zigimg.Image {
     const file_path = path orelse return null;
@@ -12,7 +25,7 @@ fn loadChannelImage(allocator: std.mem.Allocator, io_instance: std.Io, path: ?[]
     };
 }
 
-pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.PackConfig) !void {
+pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: PackOptions) !void {
     const base_output_path = options.output_path.?;
 
     const needs_ext = !std.mem.endsWith(u8, base_output_path, ".tga");
@@ -119,7 +132,7 @@ pub fn pack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.W
     writer.print("Successfully packed image into {s}!\n", .{final_out_path}) catch {};
 }
 
-pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: args.UnpackConfig) !void {
+pub fn unpack(allocator: std.mem.Allocator, io_instance: std.Io, writer: *std.Io.Writer, options: UnpackOptions) !void {
     const input_path = options.input_path.?;
     const output_dir = options.output_dir.?;
 
